@@ -15,6 +15,7 @@ import { stripeWebhooks } from './controllers/orderController.js';
 
 
 const app = express();
+app.post('/stripe', express.raw({type:'application/json'}), stripeWebhooks);
 const port = process.env.PORT || 5000;
 
 await connectDB();
@@ -23,7 +24,6 @@ await connectCloudinary();
 // Allow multiple origins
 const allowedOrigins =['http://localhost:5173'];
 
-app.post('/stripe', express.raw({type:'application/json'}), stripeWebhooks)
 
 // Middleware configuration
 app.use(cors({origin: allowedOrigins, credentials: true}));

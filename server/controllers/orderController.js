@@ -1,6 +1,6 @@
 import Product from '../models/Product.js'
 import Order from '../models/Order.js';
-import stripe from 'stripe'
+import Stripe from 'stripe'
 import User from '../models/User.js'
 
 
@@ -67,7 +67,7 @@ export const placeOrderStripe = async(req,res)=>{
             paymentType: 'Online',
         });
         // Stripe Gateway Initialize
-        const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
+        const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
 
         // create line items for stripe
         const line_items = productData.map((item)=>{
@@ -105,7 +105,7 @@ export const placeOrderStripe = async(req,res)=>{
 // Stripe Webhook to verify payments Action :/stripe
 export const stripeWebhooks = async (req,res)=>{
     //  Stripe Gateway Initialize
-    const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
+    const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     const sig = req.headers["stripe-signature"];
     let event;
@@ -128,7 +128,7 @@ export const stripeWebhooks = async (req,res)=>{
             const paymentIntentId = paymentIntent.id;
 
             // getting session metadata
-            const session = await stripeInstance.checkout.session.list({
+            const session = await stripeInstance.checkout.sessions.list({
                 payment_intent: paymentIntentId,
             });
 
@@ -137,7 +137,7 @@ export const stripeWebhooks = async (req,res)=>{
 
             await Order.findByIdAndUpdate(orderId,{isPaid:true});
             // clear user cart
-            await User.findByIdAndUpdate(userId,{cartItems:{}}) 
+            await User.findByIdAndUpdate(userId,{cartItems:[]}) 
             break;
         }
         case "payment_intent.payment_failed":{
@@ -145,7 +145,7 @@ export const stripeWebhooks = async (req,res)=>{
             const paymentIntentId = paymentIntent.id;
 
             // getting session metadata
-            const session = await stripeInstance.checkout.session.list({
+            const session = await stripeInstance.checkout.sessions.list({
                 payment_intent: paymentIntentId,
             });
 
@@ -169,7 +169,7 @@ export const getUserOrders = async(req,res)=>{
         const userId = req.userId;
         const orders = await Order.find({
             userId,
-            $or:[{paymentType: "COD"},{ paymentType: "Online" },{isPaid: true}]
+            $or:[{paymentType: "COD"}, { paymentType: "Online" }, {isPaid: true}]
         }).populate("items.product address").sort({createdAt:-1});
         res.json({success:true, orders});
     } catch (error) {
@@ -183,7 +183,7 @@ export const getUserOrders = async(req,res)=>{
 export const getAllOrders = async(req,res)=>{
     try {
         const orders = await Order.find({
-            $or:[{paymentType: "COD"},{isPaid: true}]
+            $or:[{paymentType: "COD"}, { paymentType: "Online" }, {isPaid: true}]
         }).populate("items.product address").sort({createdAt:-1});
         res.json({success:true, orders});
     } catch (error) {
